@@ -1,0 +1,10 @@
+**/.terraform/*
+.terraform*
+!.terraformrc
+*.tfstate
+*.tfstate.*
+personal.auto.tfvars
+hosts.ini
+for.ini
+hosts.yaml
+hosts.cfg

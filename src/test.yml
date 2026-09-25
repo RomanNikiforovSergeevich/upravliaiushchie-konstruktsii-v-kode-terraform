@@ -1,0 +1,25 @@
+---
+- name: test
+  gather_facts: false
+  hosts: all
+  vars:
+    ansible_ssh_user: ubuntu
+  become: true
+
+  pre_tasks:
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for_connection:
+        delay: 10
+        timeout: 45
+        connect_timeout: 20
+      register: result
+      until: result is success
+      retries: 5
+      delay: 30
+
+  tasks:
+    - name: Create test file on remote host
+      ansible.builtin.copy:
+        dest: /tmp/test-from-ansible.txt
+        content: "Ansible applied by Terraform via bastion on {{ inventory_hostname }}"
+        mode: "0644"
