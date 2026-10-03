@@ -1,4 +1,4 @@
-resource "yandex_vpc_network" "develop" {
+/*resource "yandex_vpc_network" "develop" {
   name = var.vpc_name
 }
 resource "yandex_vpc_subnet" "develop" {
@@ -7,7 +7,92 @@ resource "yandex_vpc_subnet" "develop" {
   network_id     = yandex_vpc_network.develop.id
   v4_cidr_blocks = var.default_cidr
 }
+*/
+locals {
+  cloudinit = templatefile("${path.module}/cloud-init.yml", {
+    ssh_key = var.vms_ssh_public_root_key
+  })
+}
 
-data "yandex_compute_image" "ubuntu" {
-  family = "ubuntu-2204-lts"
+module "vpc_dev" {
+  source   = "./vpc"
+  env_name = "develop"
+  subnets = [
+    { zone = "ru-central1-a", cidr = "10.0.1.0/24" },
+  ]
+}
+
+module "vpc_prod" {
+  source   = "./vpc"
+  env_name = "production"
+  subnets = [
+    { zone = "ru-central1-a", cidr = "10.0.1.0/24" },
+    { zone = "ru-central1-b", cidr = "10.0.2.0/24" },
+    { zone = "ru-central1-d", cidr = "10.0.3.0/24" },
+  ]
+}
+
+module "mysql" {
+  source       = "./mysql_cluster"
+  cluster_name = "example"
+  network_id   = module.vpc_prod.network_id
+  subnet_ids   = module.vpc_prod.subnet_ids
+  zones        = module.vpc_prod.subnet_zones
+  ha           = true
+}
+
+module "mysql_db" {
+  source        = "./mysql_db"
+  cluster_id    = module.mysql.cluster_id
+  database_name = "test"
+  user_name     = "app"
+  user_password = "Passw0rd!"
+}
+
+module "marketing_vm" {
+  source    = "git::https://github.com/udjin10/yandex_compute_instance.git?ref=main"
+  providers = { yandex = yandex }
+
+  env_name       = "marketing"
+  network_id     = module.vpc_dev.network_id
+  subnet_zones   = module.vpc_dev.subnet_zones
+  subnet_ids     = module.vpc_dev.subnet_ids
+  instance_name  = "marketing-web"
+  instance_count = 1
+  image_family   = "ubuntu-2204-lts"
+  public_ip      = true
+
+  labels = {
+    owner   = "student"
+    project = "marketing"
+  }
+
+  metadata = {
+    user-data          = local.cloudinit
+    serial-port-enable = 1
+  }
+}
+
+module "analytics_vm" {
+  source    = "git::https://github.com/udjin10/yandex_compute_instance.git?ref=main"
+  providers = { yandex = yandex }
+
+  env_name       = "analytics"
+  network_id     = module.vpc_dev.network_id
+  subnet_zones   = module.vpc_dev.subnet_zones
+  subnet_ids     = module.vpc_dev.subnet_ids
+  instance_name  = "analytics-web"
+  instance_count = 1
+  image_family   = "ubuntu-2204-lts"
+  public_ip      = true
+
+  labels = {
+    owner   = "student"
+    project = "analytics"
+  }
+
+  metadata = {
+    user-data          = local.cloudinit
+    serial-port-enable = 1
+  }
 }
