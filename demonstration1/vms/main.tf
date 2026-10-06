@@ -20,7 +20,7 @@ resource "yandex_vpc_subnet" "develop_b" {
 
 
 module "test-vm" {
-  source         = "git::https://github.com/udjin10/yandex_compute_instance.git?ref=main"
+  source         = "git::https://github.com/udjin10/yandex_compute_instance.git?ref=a230c799304c20f15f0ad761ed704e46f534a821"
   env_name       = "develop" 
   network_id     = yandex_vpc_network.develop.id
   subnet_zones   = ["ru-central1-a","ru-central1-b"]
@@ -43,7 +43,7 @@ module "test-vm" {
 }
 
 module "example-vm" {
-  source         = "git::https://github.com/udjin10/yandex_compute_instance.git?ref=main"
+  source         = "git::https://github.com/udjin10/yandex_compute_instance.git?ref=a230c799304c20f15f0ad761ed704e46f534a821"
   env_name       = "stage"
   network_id     = yandex_vpc_network.develop.id
   subnet_zones   = ["ru-central1-a"]
@@ -54,14 +54,15 @@ module "example-vm" {
   public_ip      = true
 
   metadata = {
-    user-data          = data.template_file.cloudinit.rendered #Для демонстрации №3
+    user-data          = local.cloudinit #Для демонстрации №3
     serial-port-enable = 1
   }
 
 }
 
 #Пример передачи cloud-config в ВМ для демонстрации №3
-data "template_file" "cloudinit" {
-  template = file("./cloud-init.yml")
+locals {
+  cloudinit = templatefile("${path.module}/cloud-init.yml", {
+    ssh_key = var.public_key
+  })
 }
-
