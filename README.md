@@ -111,6 +111,10 @@ Lock-файл создается автоматически в том же S3 bu
 4. Вставьте в комментарий PR результат анализа tflint и checkov, план изменений инфраструктуры из вывода команды terraform plan.
 5. Пришлите ссылку на PR для ревью. Вливать код в 'terraform-05' не нужно.
 
+   [https://github.com/RomanNikiforovSergeevich/upravliaiushchie-konstruktsii-v-kode-terraform/pull/1](https://github.com/RomanNikiforovSergeevich/upravliaiushchie-konstruktsii-v-kode-terraform/pull/1)
+   
+   ![Задание 3](/img/3_1.jpg)
+
 ------
 ### Задание 4
 
@@ -118,6 +122,18 @@ Lock-файл создается автоматически в том же S3 bu
 
 - type=string, description="ip-адрес" — проверка, что значение переменной содержит верный IP-адрес с помощью функций cidrhost() или regex(). Тесты:  "192.168.0.1" и "1920.1680.0.1";
 - type=list(string), description="список ip-адресов" — проверка, что все адреса верны. Тесты:  ["192.168.0.1", "1.1.1.1", "127.0.0.1"] и ["192.168.0.1", "1.1.1.1", "1270.0.0.1"].
+
+   [src/test-variables/test-valid.tfvars](src/test-variables/test-valid.tfvars)
+   
+   [src/test-variables/test-invalid-ip.tfvars](src/test-variables/test-invalid-ip.tfvars)
+   
+   [src/test-variables/test-invalid-list.tfvars](src/test-variables/test-invalid-list.tfvars)
+   
+   [src/test-variables/variables.tf](src/test-variables/variables.tf)
+   
+   [src/test-variables/main.tf](src/test-variables/main.tf)
+   
+   ![Задание 4](/img/4_1.jpg)
 
 ## Дополнительные задания (со звёздочкой*)
 
@@ -147,6 +163,15 @@ variable "in_the_end_there_can_be_only_one" {
     }
 }
 ```
+
+   [src/test-variables/variables.tf](src/test-variables/variables.tf)
+   
+   [src/test-variables/main.tf](src/test-variables/main.tf)
+   
+   ![Задание 5](/img/5_1.jpg)
+   
+   ![Задание 5](/img/5_2.jpg)
+
 ------
 ### Задание 6*
 
