@@ -1,0 +1,17 @@
+# Terraform
+**/.terraform/*
+.terraform*
+!.terraformrc
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Секреты
+terraform.tfvars
+personal.auto.tfvars
+*.auto.tfvars
+
+# Артефакты
+tfplan
+tflint.txt
+checkov.txt

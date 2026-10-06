@@ -1,0 +1,166 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Действие: apply или destroy'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
+
+env:
+  TF_VERSION: '1.12.0'
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  TF_VAR_cloud_id: ${{ secrets.TF_VAR_cloud_id }}
+  TF_VAR_folder_id: ${{ secrets.TF_VAR_folder_id }}
+  YC_SA_KEY_JSON: ${{ secrets.YC_SA_KEY_JSON }}
+
+jobs:
+  # ============================================
+  # JOB 1: Lint & Plan — запускается автоматически
+  # ============================================
+  lint_plan:
+    name: 'Lint & Plan'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Install tflint
+        run: |
+          curl -sSL https://github.com/terraform-linters/tflint/releases/latest/download/tflint_linux_amd64.zip -o /tmp/tflint.zip
+          unzip -o /tmp/tflint.zip -d /usr/local/bin/
+          chmod +x /usr/local/bin/tflint
+
+      - name: Install checkov
+        run: pip install checkov --quiet
+
+      - name: Install YC CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i "$HOME/yandex-cloud" -n
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
+
+      - name: Configure YC CLI
+        run: |
+          echo "$YC_SA_KEY_JSON" > /tmp/sa-key.json
+          yc config profile create ci
+          yc config set service-account-key /tmp/sa-key.json
+          yc config set cloud-id "$TF_VAR_cloud_id"
+          yc config set folder-id "$TF_VAR_folder_id"
+          echo "YC_TOKEN=$(yc iam create-token)" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Run tflint
+        run: tflint --recursive > tflint.txt 2>&1 || true
+
+      - name: Run checkov
+        run: checkov -d . > checkov.txt 2>&1 || true
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terraform-artifacts
+          path: |
+            tfplan
+            tflint.txt
+            checkov.txt
+          retention-days: 7
+
+  # ============================================
+  # JOB 2: Apply — только вручную, с подтверждением
+  # ============================================
+  apply:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+    needs: lint_plan
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Install YC CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i "$HOME/yandex-cloud" -n
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
+
+      - name: Configure YC CLI
+        run: |
+          echo "$YC_SA_KEY_JSON" > /tmp/sa-key.json
+          yc config profile create ci
+          yc config set service-account-key /tmp/sa-key.json
+          yc config set cloud-id "$TF_VAR_cloud_id"
+          yc config set folder-id "$TF_VAR_folder_id"
+          echo "YC_TOKEN=$(yc iam create-token)" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -input=false -auto-approve
+
+  # ============================================
+  # JOB 3: Destroy — только вручную, с подтверждением
+  # ============================================
+  destroy:
+    name: 'Terraform Destroy'
+    runs-on: ubuntu-latest
+    needs: lint_plan
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Install YC CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i "$HOME/yandex-cloud" -n
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
+
+      - name: Configure YC CLI
+        run: |
+          echo "$YC_SA_KEY_JSON" > /tmp/sa-key.json
+          yc config profile create ci
+          yc config set service-account-key /tmp/sa-key.json
+          yc config set cloud-id "$TF_VAR_cloud_id"
+          yc config set folder-id "$TF_VAR_folder_id"
+          echo "YC_TOKEN=$(yc iam create-token)" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        run: terraform destroy -input=false -auto-approve

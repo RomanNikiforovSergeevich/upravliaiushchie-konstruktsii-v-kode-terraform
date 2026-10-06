@@ -179,6 +179,21 @@ variable "in_the_end_there_can_be_only_one" {
 2. Скачайте с её помощью ваш репозиторий с кодом и инициализируйте инфраструктуру.
 3. Уничтожьте инфраструктуру тем же способом.
 
+   [6/variables.tf](6/variables.tf)
+   
+   [6/providers.tf](6/providers.tf)
+   
+   [6/main.tf](6/main.tf)
+   
+   [6/.github/workflows/ci.yml](6/.github/workflows/ci.yml)
+   
+   ![Задание 6](/img/6_1.jpg)
+   
+   ![Задание 6](/img/6_2.jpg)
+   
+   ![Задание 6](/img/6_3.jpg)
+   
+   ![Задание 6](/img/6_4.jpg)
 
 ------
 ### Задание 7*
