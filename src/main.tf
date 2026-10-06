@@ -8,6 +8,3 @@ resource "yandex_vpc_subnet" "develop" {
   v4_cidr_blocks = var.default_cidr
 }
 
-data "yandex_compute_image" "ubuntu" {
-  family = "ubuntu-2204-lts"
-}
